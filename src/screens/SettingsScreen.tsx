@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, Switch, Pressable } from 'react-native';
-import { useApp, NewsCategory } from '../context/AppContext';
+import { useApp, NewsCategory, NewsFilterMode } from '../context/AppContext';
 
 const SettingsScreen: React.FC = () => {
   const {
@@ -8,6 +8,9 @@ const SettingsScreen: React.FC = () => {
     setTemperatureUnit,
     newsCategories,
     setNewsCategories,
+    newsFilterMode,
+    setNewsFilterMode,
+    weather,
   } = useApp();
 
   const allCategories: NewsCategory[] = [
@@ -50,10 +53,87 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
+  const getWeatherMood = () => {
+    if (!weather) return 'Unknown';
+    const temp = weather.temp;
+    const tempCelsius =
+      temperatureUnit === 'celsius' ? temp : ((temp - 32) * 5) / 9;
+
+    if (tempCelsius < 10) return 'Cold & Gloomy';
+    if (tempCelsius > 25) return 'Hot & Intense';
+    return 'Cool & Pleasant';
+  };
+
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView className="flex-1">
         <View className="p-5">
+          {/* News Filter Mode Section */}
+          <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
+            <Text className="text-xl font-bold text-gray-900 mb-1.5">
+              News Filter Mode
+            </Text>
+            <Text className="text-sm text-gray-600 mb-5">
+              Control how news is filtered based on weather
+            </Text>
+
+            <View className="gap-3">
+              <Pressable
+                onPress={() => setNewsFilterMode('weather-based')}
+                className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${
+                  newsFilterMode === 'weather-based'
+                    ? 'bg-purple-50 border-purple-600'
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <View className="flex-1">
+                  <Text
+                    className={`font-semibold text-base mb-1 ${
+                      newsFilterMode === 'weather-based'
+                        ? 'text-purple-600'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    🌡️ Weather-Based
+                  </Text>
+                  <Text className="text-sm text-gray-600">
+                    News filtered by current mood: {getWeatherMood()}
+                  </Text>
+                </View>
+                {newsFilterMode === 'weather-based' && (
+                  <Text className="text-2xl">✓</Text>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => setNewsFilterMode('all')}
+                className={`flex-row items-center justify-between p-4 rounded-xl border-2 ${
+                  newsFilterMode === 'all'
+                    ? 'bg-purple-50 border-purple-600'
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <View className="flex-1">
+                  <Text
+                    className={`font-semibold text-base mb-1 ${
+                      newsFilterMode === 'all'
+                        ? 'text-purple-600'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    📰 All News
+                  </Text>
+                  <Text className="text-sm text-gray-600">
+                    Show all news from selected categories
+                  </Text>
+                </View>
+                {newsFilterMode === 'all' && (
+                  <Text className="text-2xl">✓</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+
           {/* Temperature Unit Section */}
           <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
             <Text className="text-xl font-bold text-gray-900 mb-1.5">
@@ -173,7 +253,7 @@ const SettingsScreen: React.FC = () => {
             ))}
           </View>
 
-          {/* Weather-Based News Filtering Info */}
+          {/* Weather-Based News Info */}
           <View className="bg-purple-600 rounded-2xl p-5 mb-5 shadow-lg">
             <View className="flex-row items-center mb-4">
               <Text className="text-3xl mr-2.5">🎯</Text>
@@ -182,8 +262,8 @@ const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <Text className="text-white/90 text-base mb-5 leading-5">
-              News articles are automatically filtered based on current weather
-              conditions to match your mood
+              When enabled, news articles are automatically filtered based on
+              weather conditions
             </Text>
 
             <View className="bg-white/15 rounded-xl p-4 mb-3">

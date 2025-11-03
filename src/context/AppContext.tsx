@@ -18,6 +18,8 @@ export type NewsCategory =
   | 'health'
   | 'science';
 
+export type NewsFilterMode = 'weather-based' | 'all' | 'custom';
+
 interface WeatherData {
   temp: number;
   condition: string;
@@ -53,8 +55,10 @@ interface AppContextType {
   error: string | null;
   temperatureUnit: TemperatureUnit;
   newsCategories: NewsCategory[];
+  newsFilterMode: NewsFilterMode;
   setTemperatureUnit: (unit: TemperatureUnit) => void;
   setNewsCategories: (categories: NewsCategory[]) => void;
+  setNewsFilterMode: (mode: NewsFilterMode) => void;
   refreshData: () => void;
 }
 
@@ -63,7 +67,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const WEATHER_API_KEY = 'bef5f06b24a0a04c792b4954c624f4fd';
 const NEWS_API_KEY = '5b7b5a1907254b90ad71243b60bc9953';
 
-// Countries supported by NewsAPI for top-headlines endpoint
 const SUPPORTED_COUNTRIES = [
   'ae',
   'ar',
@@ -133,18 +136,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   const [newsCategories, setNewsCategories] = useState<NewsCategory[]>([
     'general',
   ]);
+  const [newsFilterMode, setNewsFilterMode] =
+    useState<NewsFilterMode>('weather-based');
 
-  // Get news query based on temperature
-  const getNewsQuery = (temp: number, unit: TemperatureUnit): string => {
+  // Get news query based on temperature and filter mode
+  const getNewsQuery = (
+    temp: number,
+    unit: TemperatureUnit,
+    mode: NewsFilterMode,
+  ): string => {
+    if (mode !== 'weather-based') {
+      return ''; // No weather filtering
+    }
+
     const tempCelsius = unit === 'celsius' ? temp : ((temp - 32) * 5) / 9;
 
     if (tempCelsius < 10) {
-      return 'crisis';
+      // Cold weather - depressing news
+      return 'crisis OR tragedy OR disaster OR recession OR depression';
     } else if (tempCelsius > 25) {
-      return 'warning';
+      // Hot weather - fear-related news
+      return 'warning OR danger OR threat OR emergency OR alert';
     } else {
-      return 'success';
+      // Cool weather - positive news
+      return 'success OR victory OR achievement OR celebration OR breakthrough';
     }
+  };
+
+  // Get weather mood description
+  const getWeatherMood = (temp: number, unit: TemperatureUnit): string => {
+    const tempCelsius = unit === 'celsius' ? temp : ((temp - 32) * 5) / 9;
+
+    if (tempCelsius < 10) return 'Cold & Gloomy';
+    if (tempCelsius > 25) return 'Hot & Intense';
+    return 'Cool & Pleasant';
   };
 
   // Fetch all data
@@ -153,19 +178,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     setError(null);
 
     try {
-      // Step 1: Get Location
       console.log('Getting location...');
       const hasPermission = await requestLocationPermission();
       const coords = await getCurrentLocation(hasPermission);
       console.log('Location:', coords);
 
-      // Step 2: Fetch Weather
       console.log('Fetching weather...');
       const weatherData = await fetchWeatherData(coords.lat, coords.lon);
       console.log('Weather:', weatherData.location, weatherData.temp);
       setWeather(weatherData);
 
-      // Step 3: Fetch News based on weather
       console.log('Fetching news...');
       const newsData = await fetchNewsData(
         weatherData.temp,
@@ -182,7 +204,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Request location permission
   const requestLocationPermission = async (): Promise<boolean> => {
     if (Platform.OS === 'ios') {
       return true;
@@ -203,13 +224,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Get current location
   const getCurrentLocation = (
     hasPermission: boolean,
   ): Promise<{ lat: number; lon: number }> => {
     return new Promise(resolve => {
       if (!hasPermission) {
-        resolve({ lat: 13.0827, lon: 80.2707 }); // Chennai
+        resolve({ lat: 13.0827, lon: 80.2707 });
         return;
       }
 
@@ -222,14 +242,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         },
         error => {
           console.log('Geolocation error:', error);
-          resolve({ lat: 13.0827, lon: 80.2707 }); // Chennai fallback
+          resolve({ lat: 13.0827, lon: 80.2707 });
         },
         { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false },
       );
     });
   };
 
-  // Fetch weather data
   const fetchWeatherData = async (
     lat: number,
     lon: number,
@@ -284,72 +303,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     };
   };
 
-  // Fetch news data
   const fetchNewsData = async (
     temp: number,
     country: string,
   ): Promise<NewsArticle[]> => {
-    const query = getNewsQuery(temp, temperatureUnit);
+    const query = getNewsQuery(temp, temperatureUnit, newsFilterMode);
     const category = newsCategories[0] || 'general';
     const countryLower = country.toLowerCase();
 
-    console.log(
-      'News query:',
-      query,
-      'Category:',
-      category,
-      'Country:',
-      countryLower,
-    );
+    console.log('News filter mode:', newsFilterMode);
+    console.log('Weather query:', query || 'None (showing all news)');
+    console.log('Category:', category, 'Country:', countryLower);
 
-    // Check if country is supported
     const useCountry = SUPPORTED_COUNTRIES.includes(countryLower);
 
-    // Method 1: Try with country if supported
-    if (useCountry) {
+    // Weather-based filtering
+    if (newsFilterMode === 'weather-based' && query) {
       try {
-        const url = `https://newsapi.org/v2/top-headlines?country=${countryLower}&category=${category}&pageSize=20&apiKey=${NEWS_API_KEY}`;
-        console.log('Trying country-specific news...');
+        const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${NEWS_API_KEY}`;
+        console.log('Fetching weather-based news...');
 
         const response = await fetch(url);
         const data = await response.json();
-
-        console.log('Country news response:', response.status, data.status);
 
         if (response.ok && data.articles && data.articles.length > 0) {
           return processArticles(data.articles);
         }
       } catch (err) {
-        console.log('Country-specific news failed, trying global...');
+        console.log('Weather-based news failed, falling back...');
       }
     }
 
-    // Method 2: Try with query (weather-based)
-    try {
-      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${NEWS_API_KEY}`;
-      console.log('Trying everything endpoint with query...');
+    // All news or fallback
+    if (useCountry) {
+      try {
+        const url = `https://newsapi.org/v2/top-headlines?country=${countryLower}&category=${category}&pageSize=20&apiKey=${NEWS_API_KEY}`;
+        console.log('Fetching country-specific news...');
 
-      const response = await fetch(url);
-      const data = await response.json();
+        const response = await fetch(url);
+        const data = await response.json();
 
-      console.log('Everything news response:', response.status, data.status);
-
-      if (response.ok && data.articles && data.articles.length > 0) {
-        return processArticles(data.articles);
+        if (response.ok && data.articles && data.articles.length > 0) {
+          return processArticles(data.articles);
+        }
+      } catch (err) {
+        console.log('Country news failed...');
       }
-    } catch (err) {
-      console.log('Query news failed, trying category...');
     }
 
-    // Method 3: Fallback to US general news
+    // Final fallback to US news
     try {
       const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=20&apiKey=${NEWS_API_KEY}`;
-      console.log('Trying US fallback...');
+      console.log('Using US fallback...');
 
       const response = await fetch(url);
       const data = await response.json();
-
-      console.log('US fallback response:', response.status, data.status);
 
       if (response.ok && data.articles && data.articles.length > 0) {
         return processArticles(data.articles);
@@ -361,7 +369,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     return [];
   };
 
-  // Process articles
   const processArticles = (articles: any[]): NewsArticle[] => {
     return articles
       .filter(
@@ -378,24 +385,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       }));
   };
 
-  // Refresh data
   const refreshData = () => {
     fetchAllData();
   };
 
-  // Initial load
   useEffect(() => {
     fetchAllData();
   }, []);
 
-  // Reload when temperature unit changes
   useEffect(() => {
     if (weather) {
       fetchAllData();
     }
   }, [temperatureUnit]);
 
-  // Reload when news categories change
   useEffect(() => {
     if (weather) {
       const loadNews = async () => {
@@ -408,7 +411,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       };
       loadNews();
     }
-  }, [newsCategories]);
+  }, [newsCategories, newsFilterMode]);
 
   return (
     <AppContext.Provider
@@ -419,8 +422,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         error,
         temperatureUnit,
         newsCategories,
+        newsFilterMode,
         setTemperatureUnit,
         setNewsCategories,
+        setNewsFilterMode,
         refreshData,
       }}
     >

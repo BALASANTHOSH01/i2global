@@ -14,6 +14,68 @@ The goal of this project is to create a **React Native** mobile application with
 
 ---
 
+## 📸 App Screenshots
+
+<div align="center">
+
+### Splash Screen
+<img src="./assets/splashscreen.jpg" alt="Splash Screen" width="250"/>
+
+---
+
+### Home Screens
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="./assets/Home (C).jpg" alt="Home - Celsius" width="250"/><br/>
+      <b>Home (Celsius)</b>
+    </td>
+    <td align="center">
+      <img src="./assets/Home (F).jpg" alt="Home - Fahrenheit" width="250"/><br/>
+      <b>Home (Fahrenheit)</b>
+    </td>
+  </tr>
+</table>
+
+---
+
+### News Screens
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="./assets/News.jpg" alt="News Screen" width="250"/><br/>
+      <b>News</b>
+    </td>
+    <td align="center">
+      <img src="./assets/News-modal.jpg" alt="News Modal" width="250"/><br/>
+      <b>News Modal</b>
+    </td>
+  </tr>
+</table>
+
+---
+
+### Settings Screens
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="./assets/setting1.jpg" alt="Settings 1" width="250"/><br/>
+      <b>Settings 1</b>
+    </td>
+    <td align="center">
+      <img src="./assets/setting2.jpg" alt="Settings 2" width="250"/><br/>
+      <b>Settings 2</b>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+---
+
 ## ⚙️ Tech Stack
 
 | Technology | Version | Description |
@@ -32,4 +94,3 @@ The goal of this project is to create a **React Native** mobile application with
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/BALASANTHOSH01/i2global.git

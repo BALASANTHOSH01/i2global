@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { Platform, PermissionsAndroid } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
 
 export type TemperatureUnit = 'celsius' | 'fahrenheit';
 export type NewsCategory =
